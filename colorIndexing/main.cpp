@@ -4,9 +4,17 @@
 
 using namespace std;
 
-int main()
+int main(int argc, char *argv[])
 {
-  IplImage* refImg = cvLoadImage("DSCN2207.jpg");
+  
+  char *image1, *image2;
+  
+  if (argc < 3 || argc > 3) {
+  	cerr << "Usage: " << argv[0] << " template target" << endl;
+  	return 0;
+  }
+
+  IplImage* refImg = cvLoadImage(argv[1]);
   int arr[2] = {16, 16};
   CvHistogram* refHist = cvCreateHist(2, arr, CV_HIST_ARRAY);
   cout << refImg->colorModel << " "  << endl;
@@ -34,7 +42,7 @@ int main()
   cvNamedWindow("hist", CV_WINDOW_AUTOSIZE);
   //cvShowImage("hist", refHist->bins);
 
-  IplImage* testImg = cvLoadImage("dscn2221.jpg");
+  IplImage* testImg = cvLoadImage(argv[2]);
   CvHistogram* testHist = cvCreateHist(2, arr, CV_HIST_ARRAY);
 
   IplImage *testArr = cvCreateImage(cvGetSize(testImg), IPL_DEPTH_8U, 3);
