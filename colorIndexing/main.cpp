@@ -61,8 +61,8 @@ int main(int argc, char *argv[])
       cout << comp << endl;
   
       IplImage* patchImg = cvCreateImage(cvGetSize(testImg), IPL_DEPTH_32F, 1);
-      //cvCalcBackProjectPatch(imgArr, patchImg, cvSize(1, 1), refHist, CV_COMP_INTERSECT, 5);
-      cvCalcBackProject(imgArr, patchImg, refHist);
+      cvCalcBackProjectPatch(imgArr, patchImg, cvSize(1, 1), refHist, CV_COMP_INTERSECT, 5);
+      //cvCalcBackProject(imgArr, patchImg, refHist);
 
       cvShowImage("hist", patchImg);
 
