@@ -7,6 +7,7 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <cv.h>
 #include <highgui.h>
@@ -23,7 +24,7 @@ private:
   std::vector<ImageOf<PixelRgb> > imgs;
   double threshold;
   double matchValue;
-  string databasefile;
+  string databasefolder;
 
 public:
   Semaphore thrMutex;

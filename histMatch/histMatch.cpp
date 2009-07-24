@@ -50,37 +50,44 @@ void HistMatchData::getThreshold(double& t)
 }
 
 
-void HistMatchData::setDatabase(string s) {
-
-	databasefile = s;
-
-}
-
-string HistMatchData::getDatabase() {
-
-	return databasefile;
+void HistMatchData::setDatabase(string s)
+{
+  databasefolder = s;
 
 }
 
+string HistMatchData::getDatabase()
+{
 
-void HistMatchData::loadImages(const char *database) {
-
-        string file;
-	databasefile = database;
-        ifstream datafile(database);
-        if (datafile.is_open()) {
-                while (!datafile.eof()) {
-                        getline(datafile,file);
-                        IplImage *thisImg = cvLoadImage(file.c_str());
-			ImageOf <PixelRgb> yarpImg;
-			yarpImg.wrapIplImage(thisImg);
-                        imgs.push_back(yarpImg);
-                }
-        }
+  return databasefolder;
+  
 }
 
 
-ImageReceiver::ImageReceiver(HistMatchData* d) : data(d) { }
+void HistMatchData::loadImages(const char *database)
+{
+
+  string file;
+  databasefolder = database;
+  ifstream datafile((databasefolder + "/" + databasefolder).c_str());
+  if (datafile.is_open()) {
+    while (!datafile.eof()) {
+      getline(datafile,file);
+      if (file.size() <= 3) break;
+      file = databasefolder + "/" + file;
+      IplImage *thisImg = cvLoadImage(file.c_str());
+      ImageOf <PixelRgb> yarpImg;
+      yarpImg.wrapIplImage(thisImg);
+      imgs.push_back(yarpImg);
+    }
+  }
+}
+
+
+ImageReceiver::ImageReceiver(HistMatchData* d) : data(d)
+{
+  //cvNamedWindow("iplImage", CV_WINDOW_AUTOSIZE);
+}
 
 
 void ImageReceiver::onRead(ImageOf<PixelRgb>& img)
@@ -158,14 +165,19 @@ void ImageReceiver::onRead(ImageOf<PixelRgb>& img)
       out.addDouble(0.0);
       data->matchPort.write();
       std::cout << "stored" << std::endl;
-      string s = "image";
-      s += images.size()-1;
-      s += ".jpg";
-      cvSaveImage(s.c_str(), img.getIplImage()); 
+      string s;
+      ostringstream oss(s);
+      oss << "image" << images.size()-1 << ".jpg";
+      cout << oss.str() << endl;
+
+      string databasefolder = data->getDatabase();
+      //cvShowImage("iplImage", img.getIplImage());
+      cvCvtColor(img.getIplImage(), currImg, CV_RGB2BGR);
+      cvSaveImage((databasefolder + "/" + oss.str()).c_str(), currImg);
       
       ofstream of;
-      of.open(data->getDatabase().c_str(),ios::app);
-      of << s << endl;
+      of.open((databasefolder + "/" + databasefolder).c_str(),ios::app);
+      of << oss.str() << endl;
       of.close();
 
     }
