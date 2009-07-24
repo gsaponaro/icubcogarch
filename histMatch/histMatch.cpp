@@ -4,7 +4,7 @@
 
 HistMatchData::HistMatchData()
 {
-  threshold = 0.3;
+  setThreshold(0.6);
 
   imgPort.open("/associative-memory_image:o");
   matchPort.open("/associative-memory_match_value:o");
@@ -42,10 +42,10 @@ void HistMatchData::setThreshold(double t)
   thrMutex.post();
 }
 
-void HistMatchData::getThreshold(double* t)
+void HistMatchData::getThreshold(double& t)
 {
   thrMutex.wait();
-  t = &threshold;
+  t = threshold;
   thrMutex.post();
 }
 
@@ -54,7 +54,9 @@ ImageReceiver::ImageReceiver(HistMatchData* d) : data(d) { }
 
 void ImageReceiver::onRead(ImageOf<PixelRgb>& img)
 {
-  std::vector<ImageOf<PixelRgb> > images = data->images();
+  data->imgMutex.wait();
+
+  std::vector<ImageOf<PixelRgb> >& images = data->images();
   IplImage* currImg = cvCreateImage(cvSize(img.width(), img.height()), IPL_DEPTH_8U, 3);
   cvCvtColor((IplImage*)img.getIplImage(), currImg, CV_RGB2HSV);
 
@@ -68,11 +70,13 @@ void ImageReceiver::onRead(ImageOf<PixelRgb>& img)
   IplImage* imgArr[2] = { currImgH, currImgS };
   cvCalcHist(imgArr, currHist);
 
-  double matchValue;
-  data->getThreshold(&matchValue);
+  double matchValue, threshold;
+  data->getThreshold(threshold);
+  matchValue = threshold;
   bool found = false;
   std::vector<ImageOf<PixelRgb> >::iterator it;
   ImageOf<PixelRgb> matchImage;
+  std::cout << "threshold: " << threshold << " ";
   for (it = images.begin(); it != images.end(); ++it)
     {
 
@@ -97,13 +101,15 @@ void ImageReceiver::onRead(ImageOf<PixelRgb>& img)
 	  matchImage = *it;
 	  found = true;
 	}
+      cvReleaseImage(&refImg); cvReleaseImage(&refImgH); cvReleaseImage(&refImgS); cvReleaseImage(&refImgV);
+      cvReleaseHist(&refHist);
     }
 
   if (found)
     {
-      data->imgPort.prepare() = *it;
+      data->imgPort.prepare() = matchImage;
       data->imgPort.write();
-
+      
       Bottle& out = data->matchPort.prepare();
       out.clear();
       out.addDouble(matchValue);
@@ -122,6 +128,12 @@ void ImageReceiver::onRead(ImageOf<PixelRgb>& img)
       data->matchPort.write();
       std::cout << "stored" << std::endl;
     }
+
+  cvReleaseImage(&currImg); cvReleaseImage(&currImgH); cvReleaseImage(&currImgS); cvReleaseImage(&currImgV);
+  //cvReleaseImage(&imgArr[0]); cvReleaseImage(&imgArr[1]);
+  cvReleaseHist(&currHist);
+
+  data->imgMutex.post();
 }
 
 ThresholdReceiver::ThresholdReceiver(HistMatchData* d) : data(d) { }

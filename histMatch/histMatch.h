@@ -36,7 +36,7 @@ public:
 
   std::vector<ImageOf<PixelRgb> >& images();
   void setThreshold(double);
-  void getThreshold(double*);
+  void getThreshold(double&);
 
 };
 
