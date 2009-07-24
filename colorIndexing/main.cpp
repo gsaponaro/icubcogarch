@@ -56,18 +56,25 @@ int main(int argc, char *argv[])
       imgArr[1] =  testImgS;
       cvCalcHist( imgArr, testHist);
 
-      double comp = cvCompareHist(testHist, refHist, CV_COMP_INTERSECT);
+      double comp = cvCompareHist(testHist, refHist, CV_COMP_BHATTACHARYYA);
 
       cout << comp << endl;
   
       IplImage* patchImg = cvCreateImage(cvGetSize(testImg), IPL_DEPTH_32F, 1);
+<<<<<<< .mine
+      cvCalcBackProjectPatch(imgArr, patchImg, cvSize(1, 1), refHist, CV_COMP_BHATTACHARYYA, 5);
+      //cvCalcBackProject(imgArr, patchImg, refHist);
+=======
       cvCalcBackProjectPatch(imgArr, patchImg, cvSize(1, 1), refHist, CV_COMP_INTERSECT, 5);
       //cvCalcBackProject(imgArr, patchImg, refHist);
-
-      cvShowImage("hist", patchImg);
+>>>>>>> .r6
 
       CvPoint max, min;
       cvMinMaxLoc(patchImg, NULL, NULL, &min, &max);
+
+      cvCircle(patchImg, min, 10, CV_RGB(200, 200, 200), 3);
+
+      cvShowImage("hist", patchImg);
 
       cout << "min: " << min.x << " " << min.y << endl;
       cout << "max: " << max.x << " " << max.y << endl;
