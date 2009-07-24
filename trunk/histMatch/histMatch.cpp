@@ -6,8 +6,8 @@ HistMatchData::HistMatchData()
 {
   setThreshold(0.6);
 
-  imgPort.open("/associative-memory_image:o");
-  matchPort.open("/associative-memory_match_value:o");
+  imgPort.open("/aam/image:o");
+  matchPort.open("/aam/value:o");
 }
 
 HistMatchData::~HistMatchData()
@@ -216,8 +216,8 @@ bool HistMatchModule::open(Searchable &config)
   imgReceiver->useCallback();
   thrReceiver->useCallback();
 
-  imgReceiver->open("/associative-memory_image:i");
-  thrReceiver->open("/associative-memory_threshold:i");
+  imgReceiver->open("/aam/image:i");
+  thrReceiver->open("/aam/threshold:i");
 
   return true;
 }
