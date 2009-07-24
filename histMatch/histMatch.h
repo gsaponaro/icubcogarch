@@ -6,9 +6,12 @@
 #include <yarp/sig/all.h>
 #include <iostream>
 #include <vector>
+#include <fstream>
+#include <string>
 #include <cv.h>
 #include <highgui.h>
 
+using namespace std;
 using namespace yarp;
 using namespace yarp::os;
 using namespace yarp::sig;
@@ -20,6 +23,7 @@ private:
   std::vector<ImageOf<PixelRgb> > imgs;
   double threshold;
   double matchValue;
+  string databasefile;
 
 public:
   Semaphore thrMutex;
@@ -37,6 +41,11 @@ public:
   std::vector<ImageOf<PixelRgb> >& images();
   void setThreshold(double);
   void getThreshold(double&);
+
+  void setDatabase(string);
+  string getDatabase();
+
+  void loadImages(const char *);
 
 };
 
