@@ -49,6 +49,37 @@ void HistMatchData::getThreshold(double& t)
   thrMutex.post();
 }
 
+
+void HistMatchData::setDatabase(string s) {
+
+	databasefile = s;
+
+}
+
+string HistMatchData::getDatabase() {
+
+	return databasefile;
+
+}
+
+
+void HistMatchData::loadImages(const char *database) {
+
+        string file;
+	databasefile = database;
+        ifstream datafile(database);
+        if (datafile.is_open()) {
+                while (!datafile.eof()) {
+                        getline(datafile,file);
+                        IplImage *thisImg = cvLoadImage(file.c_str());
+			ImageOf <PixelRgb> yarpImg;
+			yarpImg.wrapIplImage(thisImg);
+                        imgs.push_back(yarpImg);
+                }
+        }
+}
+
+
 ImageReceiver::ImageReceiver(HistMatchData* d) : data(d) { }
 
 
@@ -127,6 +158,16 @@ void ImageReceiver::onRead(ImageOf<PixelRgb>& img)
       out.addDouble(0.0);
       data->matchPort.write();
       std::cout << "stored" << std::endl;
+      string s = "image";
+      s += images.size()-1;
+      s += ".jpg";
+      cvSaveImage(s.c_str(), img.getIplImage()); 
+      
+      ofstream of;
+      of.open(data->getDatabase().c_str(),ios::app);
+      of << s << endl;
+      of.close();
+
     }
 
   cvReleaseImage(&currImg); cvReleaseImage(&currImgH); cvReleaseImage(&currImgS); cvReleaseImage(&currImgV);
@@ -152,6 +193,13 @@ bool HistMatchModule::open(Searchable &config)
   Property options(config.toString());
   imgReceiver = new ImageReceiver(&data);
   thrReceiver = new ThresholdReceiver(&data);
+
+  if (options.check("database","Checking for a database...")) {
+	cout << "Database found; Using..." << endl;
+  	data.loadImages(options.find("database").asString());
+  } else {
+	cout << "No database found; starting from scratch..." << endl;
+  }
 
   imgReceiver->useCallback();
   thrReceiver->useCallback();
