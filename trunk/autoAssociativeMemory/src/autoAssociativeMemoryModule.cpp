@@ -113,7 +113,7 @@ void ImageReceiver::onRead(ImageOf<PixelRgb>& img)
   IplImage *currLP = cvCreateImage(cvSize(img.width(), img.height()), IPL_DEPTH_8U, 3);
   IplImage* currImg = cvCreateImage(cvSize(img.width(), img.height()), IPL_DEPTH_8U, 3);
 
-  cvLogPolar((IplImage*)img.getIplImage(), currLP, cvPoint2D32f(img.width()/2,img.height()/2), 70);
+  cvLogPolar((IplImage*)img.getIplImage(), currLP, cvPoint2D32f(img.width()/2,img.height()/2), 30);
 
   cvCvtColor(currLP, currImg, CV_RGB2HSV);
 
@@ -140,7 +140,7 @@ void ImageReceiver::onRead(ImageOf<PixelRgb>& img)
       IplImage *refLP = cvCreateImage(cvSize(it->width(), it->height()), IPL_DEPTH_8U, 3);
       IplImage* refImg = cvCreateImage(cvSize(it->width(), it->height()), IPL_DEPTH_8U, 3);
 
-      cvLogPolar((IplImage*)it->getIplImage(), refLP, cvPoint2D32f(it->width()/2,it->height()/2), 70);
+      cvLogPolar((IplImage*)it->getIplImage(), refLP, cvPoint2D32f(it->width()/2,it->height()/2), 30);
       cvCvtColor(refLP, refImg, CV_RGB2HSV);
 
       CvHistogram* refHist = cvCreateHist(2, arr, CV_HIST_ARRAY);
@@ -162,7 +162,7 @@ void ImageReceiver::onRead(ImageOf<PixelRgb>& img)
 	  found = true;
 	}
       cvReleaseImage(&refImg); cvReleaseImage(&refImgH); cvReleaseImage(&refImgS); cvReleaseImage(&refImgV);
-      cvReleaseHist(&refHist);
+      cvReleaseImage(&refLP); cvReleaseHist(&refHist);
     }
 
   if (found)
@@ -206,7 +206,7 @@ void ImageReceiver::onRead(ImageOf<PixelRgb>& img)
 
   cvReleaseImage(&currImg); cvReleaseImage(&currImgH); cvReleaseImage(&currImgS); cvReleaseImage(&currImgV);
   //cvReleaseImage(&imgArr[0]); cvReleaseImage(&imgArr[1]);
-  cvReleaseHist(&currHist);
+  cvReleaseImage(&currLP); cvReleaseHist(&currHist);
 
   data->imgMutex.post();
 }
