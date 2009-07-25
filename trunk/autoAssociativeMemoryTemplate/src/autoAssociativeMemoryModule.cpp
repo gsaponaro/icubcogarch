@@ -64,8 +64,6 @@ bool AutoAssociativeMemoryModule::updateModule()
 	
 	
 	// actual vision algorithm goes here
-	//
-	// create other functions, e.g. AutoAssociativeMemory::HistMatching
 	
 	// try to recall input image from AAM	
 	// if there is a stored match, return it
@@ -80,7 +78,7 @@ bool AutoAssociativeMemoryModule::updateModule()
 
 bool AutoAssociativeMemoryModule::interruptModule()
 {
-	// interrupt ports gracefully
+	// interrupt ports gracefully when module communication is interrupted
 	_portImageIn.interrupt();
 	_portThresholdIn.interrupt();
 	_portImageOut.interrupt();
