@@ -110,8 +110,12 @@ void ImageReceiver::onRead(ImageOf<PixelRgb>& img)
   data->imgMutex.wait();
 
   std::vector<ImageOf<PixelRgb> >& images = data->images();
+  IplImage *currLP = cvCreateImage(cvSize(img.width(), img.height()), IPL_DEPTH_8U, 3);
   IplImage* currImg = cvCreateImage(cvSize(img.width(), img.height()), IPL_DEPTH_8U, 3);
-  cvCvtColor((IplImage*)img.getIplImage(), currImg, CV_RGB2HSV);
+
+  cvLogPolar((IplImage*)img.getIplImage(), currLP, cvPoint2D32f(img.width()/2,img.height()/2), 70);
+
+  cvCvtColor(currLP, currImg, CV_RGB2HSV);
 
   int arr[2] = { 16, 16 };
   CvHistogram* currHist = cvCreateHist(2, arr, CV_HIST_ARRAY);
@@ -133,8 +137,11 @@ void ImageReceiver::onRead(ImageOf<PixelRgb>& img)
   for (it = images.begin(); it != images.end(); ++it)
     {
 
+      IplImage *refLP = cvCreateImage(cvSize(it->width(), it->height()), IPL_DEPTH_8U, 3);
       IplImage* refImg = cvCreateImage(cvSize(it->width(), it->height()), IPL_DEPTH_8U, 3);
-      cvCvtColor((IplImage*)it->getIplImage(), refImg, CV_RGB2HSV);
+
+      cvLogPolar((IplImage*)it->getIplImage(), refLP, cvPoint2D32f(it->width()/2,it->height()/2), 70);
+      cvCvtColor(refLP, refImg, CV_RGB2HSV);
 
       CvHistogram* refHist = cvCreateHist(2, arr, CV_HIST_ARRAY);
 
