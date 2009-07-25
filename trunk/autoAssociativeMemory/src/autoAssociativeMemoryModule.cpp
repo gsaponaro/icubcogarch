@@ -133,6 +133,7 @@ void ImageReceiver::onRead(ImageOf<PixelRgb>& img)
   bool found = false;
   std::vector<ImageOf<PixelRgb> >::iterator it;
   ImageOf<PixelRgb> matchImage;
+  int matchId = 0;
   std::cout << "threshold: " << threshold << " ";
   for (it = images.begin(); it != images.end(); ++it)
     {
@@ -159,6 +160,7 @@ void ImageReceiver::onRead(ImageOf<PixelRgb>& img)
 	{
 	  matchValue = comp;
 	  matchImage = *it;
+	  matchId = it - images.begin();
 	  found = true;
 	}
       cvReleaseImage(&refImg); cvReleaseImage(&refImgH); cvReleaseImage(&refImgS); cvReleaseImage(&refImgV);
@@ -172,6 +174,7 @@ void ImageReceiver::onRead(ImageOf<PixelRgb>& img)
       
       Bottle& out = matchPort->prepare();
       out.clear();
+      out.addInt(matchId);
       out.addDouble(matchValue);
       matchPort->write();
       cout << "found" << endl;
@@ -184,7 +187,8 @@ void ImageReceiver::onRead(ImageOf<PixelRgb>& img)
 
       Bottle& out = matchPort->prepare();
       out.clear();
-      out.addDouble(0.0);
+      out.addInt(images.size()-1);
+      out.addDouble(1.0);
       matchPort->write();
       cout << "stored" << endl;
       string s;
