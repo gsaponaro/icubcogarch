@@ -110,12 +110,12 @@ void ImageReceiver::onRead(ImageOf<PixelRgb>& img)
   data->imgMutex.wait();
 
   std::vector<ImageOf<PixelRgb> >& images = data->images();
-  IplImage *currLP = cvCreateImage(cvSize(img.width(), img.height()), IPL_DEPTH_8U, 3);
+  //IplImage *currLP = cvCreateImage(cvSize(img.width(), img.height()), IPL_DEPTH_8U, 3);
   IplImage* currImg = cvCreateImage(cvSize(img.width(), img.height()), IPL_DEPTH_8U, 3);
 
-  cvLogPolar((IplImage*)img.getIplImage(), currLP, cvPoint2D32f(img.width()/2,img.height()/2), 30);
+  //cvLogPolar((IplImage*)img.getIplImage(), currLP, cvPoint2D32f(img.width()/2,img.height()/2), 30);
 
-  cvCvtColor(currLP, currImg, CV_RGB2HSV);
+  cvCvtColor((IplImage*)img.getIplImage(), currImg, CV_RGB2HSV);
 
   int arr[2] = { 16, 16 };
   CvHistogram* currHist = cvCreateHist(2, arr, CV_HIST_ARRAY);
@@ -138,11 +138,11 @@ void ImageReceiver::onRead(ImageOf<PixelRgb>& img)
   for (it = images.begin(); it != images.end(); ++it)
     {
 
-      IplImage *refLP = cvCreateImage(cvSize(it->width(), it->height()), IPL_DEPTH_8U, 3);
+      //IplImage *refLP = cvCreateImage(cvSize(it->width(), it->height()), IPL_DEPTH_8U, 3);
       IplImage* refImg = cvCreateImage(cvSize(it->width(), it->height()), IPL_DEPTH_8U, 3);
 
-      cvLogPolar((IplImage*)it->getIplImage(), refLP, cvPoint2D32f(it->width()/2,it->height()/2), 30);
-      cvCvtColor(refLP, refImg, CV_RGB2HSV);
+      //cvLogPolar((IplImage*)it->getIplImage(), refLP, cvPoint2D32f(it->width()/2,it->height()/2), 30);
+      cvCvtColor((IplImage*)it->getIplImage(), refImg, CV_RGB2HSV);
 
       CvHistogram* refHist = cvCreateHist(2, arr, CV_HIST_ARRAY);
 
@@ -164,7 +164,7 @@ void ImageReceiver::onRead(ImageOf<PixelRgb>& img)
 	  found = true;
 	}
       cvReleaseImage(&refImg); cvReleaseImage(&refImgH); cvReleaseImage(&refImgS); cvReleaseImage(&refImgV);
-      cvReleaseImage(&refLP); cvReleaseHist(&refHist);
+      cvReleaseHist(&refHist);
     }
 
   if (found)
@@ -210,7 +210,7 @@ void ImageReceiver::onRead(ImageOf<PixelRgb>& img)
 
   cvReleaseImage(&currImg); cvReleaseImage(&currImgH); cvReleaseImage(&currImgS); cvReleaseImage(&currImgV);
   //cvReleaseImage(&imgArr[0]); cvReleaseImage(&imgArr[1]);
-  cvReleaseImage(&currLP); cvReleaseHist(&currHist);
+  cvReleaseHist(&currHist);
 
   data->imgMutex.post();
 }
