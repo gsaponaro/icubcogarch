@@ -1,335 +1,353 @@
+// -*- mode:C++; tab-width:4; c-basic-offset:4; indent-tabs-mode:nil -*-
+
+/* 
+ * Copyright (C) 2009 RobotCub Consortium, European Commission FP6 Project IST-004370
+ * Authors: Alberto Bietti, Logan Niehaus, Giovanni Saponaro 
+ * email:   <firstname.secondname>@robotcub.org
+ * website: www.robotcub.org
+ * Permission is granted to copy, distribute, and/or modify this program
+ * under the terms of the GNU General Public License, version 2 or any
+ * later version published by the Free Software Foundation.
+ *
+ * A copy of the license can be found at
+ * http://www.robotcub.org/icub/license/gpl.txt
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details
+ */
+
 // iCub
 #include <iCub/autoAssociativeMemoryModule.h>
 
-
-///////////////////// HistMatchData definitions ///////////////////////////////
-
+//HistMatchData constructor
 HistMatchData::HistMatchData()
 {
-  setThreshold(0.6);
-  databaseName = "defaultDatabase";
-  databaseContext = "";
+    setThreshold(0.6);  //default threshold value
+    databaseName = "defaultDatabase";
+    databaseContext = "";
 }
 
+//HistMatchData deconstructor
 HistMatchData::~HistMatchData()
 {
 }
 
-/*void HistMatchData::addImage(IplImage* img)
-{
-  imgMutex.wait();
-  images.push_back(img);
-  imgMutex.post();
-}
 
-void getImages(std::vector<IplImage*>* v)
-{
-  imgMutex.wait();
-  v = &images;
-  imgMutex.post();
-}*/
-
+//HistMatchData image getter method
 vector<ImageOf<PixelRgb> >& HistMatchData::images()
 {
-  return imgs;
+    return imgs;
 }
 
+//threshold setter
 void HistMatchData::setThreshold(double t)
 {
-  thrMutex.wait();
-  threshold = t;
-  thrMutex.post();
+    thrMutex.wait();
+    threshold = t;
+    thrMutex.post();
 }
 
+//threshold getter
 void HistMatchData::getThreshold(double& t)
 {
-  thrMutex.wait();
-  t = threshold;
-  thrMutex.post();
+    thrMutex.wait();
+    t = threshold;
+    thrMutex.post();
 }
 
+//database context setter
 void HistMatchData::setDatabaseContext(string s)
 {
-  databaseContext = s;
+    databaseContext = s;
 }
 
+//database context getter
 string HistMatchData::getDatabaseContext()
 {
-  return databaseContext;
+    return databaseContext;
 }
 
+//change database name
 void HistMatchData::setDatabaseName(string s)
 {
-  databaseName = s;
-
+    databaseName = s;
 }
 
+//get database name
 string HistMatchData::getDatabaseName()
 {
-
-  return databaseName;
-  
+    return databaseName; 
 }
 
 
+//Loads a vector of JPG images into a bottle based on our 'database' file
 void HistMatchData::loadDatabase()
 {
 
-  string file;
-  string databaseFolder;
-  if (databaseContext == "")
-    databaseFolder = databaseName;
-  else
-    databaseFolder = databaseContext + "/" + databaseName;
+    string file;
+    string databaseFolder;
+    if (databaseContext == "")
+        databaseFolder = databaseName;
+    else
+        databaseFolder = databaseContext + "/" + databaseName;
 
-  ifstream datafile((databaseFolder + "/" + databaseName).c_str());
-  if (datafile.is_open()) {
-    while (!datafile.eof()) {
-      getline(datafile,file);
-      if (file.size() <= 3) break;
-      file = databaseFolder + "/" + file;
-      IplImage *thisImg = cvLoadImage(file.c_str());
-      ImageOf <PixelRgb> yarpImg;
-      yarpImg.wrapIplImage(thisImg);
-      imgs.push_back(yarpImg);
+    ifstream datafile((databaseFolder + "/" + databaseName).c_str());
+    if (datafile.is_open()) {
+        while (!datafile.eof()) {  //open the file and read in each line
+            getline(datafile,file);
+            if (file.size() <= 3) break;
+            file = databaseFolder + "/" + file;
+            IplImage *thisImg = cvLoadImage(file.c_str());  //load image
+            ImageOf <PixelRgb> yarpImg;
+            yarpImg.wrapIplImage(thisImg);  
+            imgs.push_back(yarpImg);
+        }
     }
-  }
 }
 
-
-////////////////////// Receivers definitions //////////////////////////////////
 
 ImageReceiver::ImageReceiver(HistMatchData* d, BufferedPort<ImageOf<PixelRgb> >* iPort, BufferedPort<Bottle>* mPort) : data(d), imgPort(iPort), matchPort(mPort)
 {
-  //cvNamedWindow("iplImage", CV_WINDOW_AUTOSIZE);
 }
 
+/* Callback which processes the images receieved
+    When an image is provided, it will compared against all other images in the database.
+    If an image produces a match, that image will be recalled. If there is no match
+    in the database, then the image will be added and returned.
+*/
 
 void ImageReceiver::onRead(ImageOf<PixelRgb>& img)
 {
-  data->imgMutex.wait();
+    data->imgMutex.wait();
 
-  std::vector<ImageOf<PixelRgb> >& images = data->images();
-  //IplImage *currLP = cvCreateImage(cvSize(img.width(), img.height()), IPL_DEPTH_8U, 3);
-  IplImage* currImg = cvCreateImage(cvSize(img.width(), img.height()), IPL_DEPTH_8U, 3);
+    std::vector<ImageOf<PixelRgb> >& images = data->images();
+    IplImage* currImg = cvCreateImage(cvSize(img.width(), img.height()), IPL_DEPTH_8U, 3);
 
-  //cvLogPolar((IplImage*)img.getIplImage(), currLP, cvPoint2D32f(img.width()/2,img.height()/2), 30);
+    //get the images from the port
+    cvCvtColor((IplImage*)img.getIplImage(), currImg, CV_RGB2HSV);
 
-  cvCvtColor((IplImage*)img.getIplImage(), currImg, CV_RGB2HSV);
+    int arr[2] = { 16, 16 }; // 16x16 histogram bins are used, as that is what is done in the literature
+    CvHistogram* currHist = cvCreateHist(2, arr, CV_HIST_ARRAY);
 
-  int arr[2] = { 16, 16 };
-  CvHistogram* currHist = cvCreateHist(2, arr, CV_HIST_ARRAY);
 
-  IplImage *currImgH = cvCreateImage(cvGetSize(currImg), IPL_DEPTH_8U, 1);
-  IplImage *currImgS = cvCreateImage(cvGetSize(currImg), IPL_DEPTH_8U, 1);
-  IplImage *currImgV = cvCreateImage(cvGetSize(currImg), IPL_DEPTH_8U, 1);
-  cvSplit(currImg, currImgH, currImgS, currImgV, NULL);
-  IplImage* imgArr[2] = { currImgH, currImgS };
-  cvCalcHist(imgArr, currHist);
+    //convert from RGB to HSV and split the 3 channels
+    IplImage *currImgH = cvCreateImage(cvGetSize(currImg), IPL_DEPTH_8U, 1);  //hue
+    IplImage *currImgS = cvCreateImage(cvGetSize(currImg), IPL_DEPTH_8U, 1);  //saturation
+    IplImage *currImgV = cvCreateImage(cvGetSize(currImg), IPL_DEPTH_8U, 1);  //value (thrown away)
+    cvSplit(currImg, currImgH, currImgS, currImgV, NULL);
+    IplImage* imgArr[2] = { currImgH, currImgS };
+    cvCalcHist(imgArr, currHist);
 
-  double matchValue, threshold;
-  data->getThreshold(threshold);
-  matchValue = threshold;
-  bool found = false;
-  std::vector<ImageOf<PixelRgb> >::iterator it;
-  ImageOf<PixelRgb> matchImage;
-  int matchId = 0;
-  std::cout << "threshold: " << threshold << " ";
-  for (it = images.begin(); it != images.end(); ++it)
-    {
-
-      //IplImage *refLP = cvCreateImage(cvSize(it->width(), it->height()), IPL_DEPTH_8U, 3);
-      IplImage* refImg = cvCreateImage(cvSize(it->width(), it->height()), IPL_DEPTH_8U, 3);
-
-      //cvLogPolar((IplImage*)it->getIplImage(), refLP, cvPoint2D32f(it->width()/2,it->height()/2), 30);
-      cvCvtColor((IplImage*)it->getIplImage(), refImg, CV_RGB2HSV);
-
-      CvHistogram* refHist = cvCreateHist(2, arr, CV_HIST_ARRAY);
-
-      IplImage *refImgH = cvCreateImage(cvGetSize(refImg), IPL_DEPTH_8U, 1);
-      IplImage *refImgS = cvCreateImage(cvGetSize(refImg), IPL_DEPTH_8U, 1);
-      IplImage *refImgV = cvCreateImage(cvGetSize(refImg), IPL_DEPTH_8U, 1);
-      cvSplit(refImg, refImgH, refImgS, refImgV, NULL);
-      imgArr[0] = refImgH;
-      imgArr[1] = refImgS;
-      cvCalcHist(imgArr, refHist);
-
-      double comp = 1 - cvCompareHist(currHist, refHist, CV_COMP_BHATTACHARYYA);
-      cout << comp << " ";
-      if (comp > matchValue)
-	{
-	  matchValue = comp;
-	  matchImage = *it;
-	  matchId = it - images.begin();
-	  found = true;
-	}
-      cvReleaseImage(&refImg); cvReleaseImage(&refImgH); cvReleaseImage(&refImgS); cvReleaseImage(&refImgV);
-      cvReleaseHist(&refHist);
-    }
-
-  if (found)
-    {
-      imgPort->prepare() = matchImage;
-      imgPort->write();
-      
-      Bottle& out = matchPort->prepare();
-      out.clear();
-      out.addInt(matchId);
-      out.addDouble(matchValue);
-      matchPort->write();
-      cout << "found" << endl;
-    }
-  else
-    {
-      images.push_back(img);
-      imgPort->prepare() = img;
-      imgPort->write();
-
-      Bottle& out = matchPort->prepare();
-      out.clear();
-      out.addInt(images.size()-1);
-      out.addDouble(1.0);
-      matchPort->write();
-      cout << "stored" << endl;
-      string s;
-      ostringstream oss(s);
-      oss << "image" << images.size()-1 << ".jpg";
-      cout << oss.str() << endl;
-
-      string databasefolder = data->getDatabaseContext() + "/" + data->getDatabaseName();
-      //cvShowImage("iplImage", img.getIplImage());
-      cvCvtColor(img.getIplImage(), currImg, CV_RGB2BGR);
-      cvSaveImage((databasefolder + "/" + oss.str()).c_str(), currImg);
-      
-      ofstream of;
-      of.open((databasefolder + "/" + data->getDatabaseName()).c_str(),ios::app);
-      of << oss.str() << endl;
-      of.close();
-
-    }
-
-  cvReleaseImage(&currImg); cvReleaseImage(&currImgH); cvReleaseImage(&currImgS); cvReleaseImage(&currImgV);
-  //cvReleaseImage(&imgArr[0]); cvReleaseImage(&imgArr[1]);
-  cvReleaseHist(&currHist);
-
-  data->imgMutex.post();
-}
-
+    double matchValue, threshold;
+    data->getThreshold(threshold);
+    matchValue = threshold;
+    bool found = false;
+    std::vector<ImageOf<PixelRgb> >::iterator it;
+    ImageOf<PixelRgb> matchImage;
+    int matchId = 0;
+    // std::cout << "threshold: " << threshold << " ";  //for debugging purposes only
+    
+    //for each image present in the database
+    for (it = images.begin(); it != images.end(); ++it)
+      {
+    
+        IplImage* refImg = cvCreateImage(cvSize(it->width(), it->height()), IPL_DEPTH_8U, 3);
+    
+        cvCvtColor((IplImage*)it->getIplImage(), refImg, CV_RGB2HSV);
+    
+        CvHistogram* refHist = cvCreateHist(2, arr, CV_HIST_ARRAY);
+    
+        //convert the image to HSV, then split the 3 channels
+        IplImage *refImgH = cvCreateImage(cvGetSize(refImg), IPL_DEPTH_8U, 1);
+        IplImage *refImgS = cvCreateImage(cvGetSize(refImg), IPL_DEPTH_8U, 1);
+        IplImage *refImgV = cvCreateImage(cvGetSize(refImg), IPL_DEPTH_8U, 1);
+        cvSplit(refImg, refImgH, refImgS, refImgV, NULL);
+        imgArr[0] = refImgH;
+        imgArr[1] = refImgS;
+        cvCalcHist(imgArr, refHist);
+    
+        double comp = 1 - cvCompareHist(currHist, refHist, CV_COMP_BHATTACHARYYA);  //this method of in tersection seems to produce better results
+        //cout << comp << " ";    //once again, only for debugging purposes
+        //do a histogram intersection, and check it against the threshold 
+        if (comp > matchValue)
+	    {
+	      matchValue = comp;
+	      matchImage = *it;
+	      matchId = it - images.begin();
+	      found = true;
+	    }
+        cvReleaseImage(&refImg); cvReleaseImage(&refImgH); cvReleaseImage(&refImgS); cvReleaseImage(&refImgV);
+        cvReleaseHist(&refHist);
+      }
+    //if the image produces a match
+    if (found)
+      {
+        imgPort->prepare() = matchImage;
+        imgPort->write();
+        
+        Bottle& out = matchPort->prepare();
+        out.clear();
+        out.addInt(matchId);
+        out.addDouble(matchValue);
+        matchPort->write();
+        cout << "found" << endl;
+      }
+    //no match found
+    else
+      {
+    
+        //add the image to the database in memory, then into the filesystem.
+        images.push_back(img);
+        imgPort->prepare() = img;
+        imgPort->write();
+    
+        //create a filename that is imageXX.jpg
+        Bottle& out = matchPort->prepare();
+        out.clear();
+        out.addInt(images.size()-1);
+        out.addDouble(1.0);
+        matchPort->write();
+        cout << "stored" << endl;
+        string s;
+        ostringstream oss(s);
+        oss << "image" << images.size()-1 << ".jpg";
+        cout << oss.str() << endl;
+    
+    
+        //write it out to the proper database
+        string databasefolder = data->getDatabaseContext() + "/" + data->getDatabaseName();
+        cvCvtColor(img.getIplImage(), currImg, CV_RGB2BGR);  //opencv stores images as BGR
+        cvSaveImage((databasefolder + "/" + oss.str()).c_str(), currImg);
+        
+        ofstream of;
+        of.open((databasefolder + "/" + data->getDatabaseName()).c_str(),ios::app);
+        of << oss.str() << endl;
+        of.close();
+    
+        }
+    
+    cvReleaseImage(&currImg); cvReleaseImage(&currImgH); cvReleaseImage(&currImgS); cvReleaseImage(&currImgV);
+    cvReleaseHist(&currHist);
+    
+    data->imgMutex.post();
+}   
+    
 ThresholdReceiver::ThresholdReceiver(HistMatchData* d) : data(d) { }
-
+    
 
 void ThresholdReceiver::onRead(Bottle& threshold)
 {
-  double t = threshold.get(0).asDouble();
-  std::cout << "the threshold is now: " << t << std::endl;
-  data->setThreshold(t);
+    double t = threshold.get(0).asDouble();
+    std::cout << "the threshold is now: " << t << std::endl;
+    data->setThreshold(t);
 }
 
-
-///////////////// Auto Associative Memory Module definitions //////////////////
-
+/** AAM Module open. This is inherited from the module class. 
+*/
 bool AutoAssociativeMemoryModule::open(Searchable &config)
 {
-  // read options from command line
-  Bottle initialBottle(config.toString().c_str());
+    // read options from command line
+    Bottle initialBottle(config.toString().c_str());
     
-  // if autoAssociativeMemory.ini exists, then load it
-  ConstString initializationFile = initialBottle.check("from",
+    // if autoAssociativeMemory.ini exists, then load it
+    ConstString initializationFile = initialBottle.check("from",
 						       Value("autoAssociativeMemory.ini"),
 						       "Initialization file (string)").asString();
     
-  ConstString context = initialBottle.check("context",
+    ConstString context = initialBottle.check("context",
 					    Value("autoAssociativeMemory"),
 					    "Context (string)").asString();
 
-  // create and initialize resource finder
-  ResourceFinder rf;
-  rf.setDefaultContext(context.c_str());
-  rf.setDefaultConfigFile(initializationFile.c_str());
-  rf.configure("ICUB_ROOT", 0, NULL);
+    // create and initialize resource finder
+    ResourceFinder rf;
+    rf.setDefaultContext(context.c_str());
+    rf.setDefaultConfigFile(initializationFile.c_str());
+    rf.configure("ICUB_ROOT", 0, NULL);
 
-  // pass configuration over to bottle
-  Bottle botConfig(rf.toString().c_str());
+    // pass configuration over to bottle
+    Bottle botConfig(rf.toString().c_str());
 
-  // parse parameters or assign default values (append to getName=="/aam")
-  _namePortImageIn = botConfig.check("portImageIn",
+    // parse parameters or assign default values (append to getName=="/aam")
+    _namePortImageIn = botConfig.check("portImageIn",
 				     Value(getName("image:i")),
 				     "Input image port (string)").asString();
-  _namePortThresholdIn = botConfig.check("portThresholdIn",
+    _namePortThresholdIn = botConfig.check("portThresholdIn",
 					 Value(getName("threshold:i")),
 					 "Input threshold port (string)").asString();
-  _namePortImageOut = botConfig.check("portImageOut",
+    _namePortImageOut = botConfig.check("portImageOut",
 				      Value(getName("image:o")),
 				      "Output image port (string)").asString();
-  _namePortValueOut = botConfig.check("portValueOut",
+    _namePortValueOut = botConfig.check("portValueOut",
 				      Value(getName("value:o")),
 				      "Output value port (string)").asString();
 
-  string databaseName = botConfig.check("database",
+    string databaseName = botConfig.check("database",
 					Value("defaultDatabase"),
 					"Database name (string)").asString().c_str();
-  string path = botConfig.check("path",
+    string path = botConfig.check("path",
 				Value("~/iCub/app/"),
 				"complete path to context").asString().c_str();
-  double thr = botConfig.check("threshold",
+    double thr = botConfig.check("threshold",
                                Value(0.6),
                                "initial threshold value (double)").asDouble();
 				   
-  data.setThreshold(thr);
+    data.setThreshold(thr);
   
-  string ctxt = path;
-  ctxt += context.c_str();
-  data.setDatabaseContext(ctxt);
-  cout << "context: " << ctxt << endl;
-  data.setDatabaseName(databaseName);
-  cout << "databaseName: " << databaseName << endl;
-  data.loadDatabase();
+    string ctxt = path;
+    ctxt += context.c_str();
+    data.setDatabaseContext(ctxt);
+    cout << "context: " << ctxt << endl;
+    data.setDatabaseName(databaseName);
+    cout << "databaseName: " << databaseName << endl;
+    data.loadDatabase();
 
-  // create AAM ports
-  _portImageIn = new ImageReceiver(&data, &_portImageOut, &_portValueOut);
-  _portThresholdIn = new ThresholdReceiver(&data);
+    // create AAM ports
+    _portImageIn = new ImageReceiver(&data, &_portImageOut, &_portValueOut);
+    _portThresholdIn = new ThresholdReceiver(&data);
 
-  _portImageIn->useCallback();
-  _portThresholdIn->useCallback();
+    _portImageIn->useCallback();
+    _portThresholdIn->useCallback();
 
-  _portImageIn->open(_namePortImageIn);
-  _portThresholdIn->open(_namePortThresholdIn);
-  _portImageOut.open(_namePortImageOut);
-  _portValueOut.open(_namePortValueOut);
+    _portImageIn->open(_namePortImageIn);
+    _portThresholdIn->open(_namePortThresholdIn);
+    _portImageOut.open(_namePortImageOut);
+    _portValueOut.open(_namePortValueOut);
 	
-  return true;
+    return true;
 }
 
 bool AutoAssociativeMemoryModule::updateModule()
 {		
-  return true;
+    return true;
 }
 
 bool AutoAssociativeMemoryModule::interruptModule()
 {
-  // interrupt ports gracefully
-  _portImageIn->interrupt();
-  _portThresholdIn->interrupt();
-  _portImageOut.interrupt();
-  _portValueOut.interrupt();
+    // interrupt ports gracefully
+    _portImageIn->interrupt();
+    _portThresholdIn->interrupt();
+    _portImageOut.interrupt();
+    _portValueOut.interrupt();
 	
-  return true;	
+    return true;	
 }
 
 bool AutoAssociativeMemoryModule::close()
 {
-  cout << "Closing Auto-Associative Memory...\n\n";
+    cout << "Closing Auto-Associative Memory...\n\n";
 
-  // close AAM ports
-  _portImageIn->close();
-  _portThresholdIn->close();
-  _portImageOut.close();
-  _portValueOut.close();
+    // close AAM ports
+    _portImageIn->close();
+    _portThresholdIn->close();
+    _portImageOut.close();
+    _portValueOut.close();
   
-  // free data structures, delete dynamically-created variables
+    // free data structures, delete dynamically-created variables
     
-  // is this necessary?
-  //Network::fini();
+    // is this necessary?
+    //Network::fini();
     
-  return true;
+    return true;
 }
