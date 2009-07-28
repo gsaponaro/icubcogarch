@@ -271,8 +271,12 @@ bool AutoAssociativeMemoryModule::open(Searchable &config)
   string path = botConfig.check("path",
 				Value("~/iCub/app/"),
 				"complete path to context").asString().c_str();
+  double thr = botConfig.check("threshold",
+                               Value(0.6),
+                               "initial threshold value (double)").asDouble();
 				   
-
+  data.setThreshold(thr);
+  
   string ctxt = path;
   ctxt += context.c_str();
   data.setDatabaseContext(ctxt);
