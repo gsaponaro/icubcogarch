@@ -30,7 +30,6 @@
    <name>/home/alberto/iCub/projects/icubcogarch/demoAAM/demoAAM</name>
    <parameters></parameters>
    <node>icub1</node>
-   <stdio>outnode</stdio>
    <tag>aamDriver</tag>
 </module>
 
