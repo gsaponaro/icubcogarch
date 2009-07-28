@@ -1,0 +1,65 @@
+<application>
+<name>auto-associative memory demo</name>
+
+<dependencies>
+   <port>/icub/cam/left</port>
+</dependencies>
+
+<module>
+   <name>yarpview</name>
+   <parameters>--name /input_image --x 0 --y 10 --synch</parameters>
+   <node>icub1</node>
+   <tag>input_image</tag>
+</module>
+
+<module>
+   <name>yarpview</name>
+   <parameters>--name /recalled_image --x 320 --y 10 --synch</parameters>
+   <node>icub1</node>
+   <tag>recalled_image</tag>
+</module>
+
+<module>
+   <name>/home/alberto/iCub/projects/icubcogarch/autoAssociativeMemory/autoAssociativeMemory</name>
+   <parameters></parameters>
+   <node>icub1</node>
+   <tag>aam</tag>
+</module>
+
+<module>
+   <name>/home/alberto/iCub/projects/icubcogarch/demoAAM/demoAAM</name>
+   <parameters></parameters>
+   <node>icub1</node>
+   <stdio>outnode</stdio>
+   <tag>aamDriver</tag>
+</module>
+
+
+<connection>
+  <output>/icub/cam/left</output>
+  <input>/input_image</input>
+  <protocol>tcp</protocol>
+</connection>
+ 
+<connection>
+   <output>/icub/cam/left</output>
+   <input>/aam/image:i</input>
+   <protocol>tcp</protocol>
+</connection>
+
+
+<connection>
+   <output>/aam/image:o</output>
+   <input>/recalled_image</input>
+   <protocol>tcp</protocol>
+ </connection>
+
+
+<connection>
+   <output>/aamdriver/threshold:o</output>
+   <input>/aam/threshold:i</input>
+   <protocol>tcp</protocol>
+</connection>
+
+ 
+</application>
