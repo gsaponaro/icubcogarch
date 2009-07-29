@@ -106,20 +106,23 @@ void HistMatchData::loadDatabase()
         }
     }
 }
+    
+ThresholdReceiver::ThresholdReceiver(HistMatchData* d, BufferedPort<ImageOf<PixelRgb> >* iPortIn, BufferedPort<ImageOf<PixelRgb> >* iPort, BufferedPort<Bottle>* mPort) : data(d), imgPortIn(iPortIn), imgPort(iPort), matchPort(mPort) { }
 
 
-ImageReceiver::ImageReceiver(HistMatchData* d, BufferedPort<ImageOf<PixelRgb> >* iPort, BufferedPort<Bottle>* mPort) : data(d), imgPort(iPort), matchPort(mPort)
+void ThresholdReceiver::onRead(Bottle& t)
 {
-}
-
-/* Callback which processes the images receieved
-    When an image is provided, it will compared against all other images in the database.
-    If an image produces a match, that image will be recalled. If there is no match
-    in the database, then the image will be added and returned.
-*/
-
-void ImageReceiver::onRead(ImageOf<PixelRgb>& img)
-{
+    double threshold = t.get(0).asDouble();
+    std::cout << "the threshold is now: " << threshold << std::endl;
+    data->setThreshold(threshold);
+    
+    ImageOf<PixelRgb>* imgIn = imgPortIn->read();
+    
+    if (imgIn == NULL) 
+   		return;
+   	
+   	ImageOf<PixelRgb>& img = *imgIn;
+    
     data->imgMutex.wait();
 
     std::vector<ImageOf<PixelRgb> >& images = data->images();
@@ -140,8 +143,7 @@ void ImageReceiver::onRead(ImageOf<PixelRgb>& img)
     IplImage* imgArr[2] = { currImgH, currImgS };
     cvCalcHist(imgArr, currHist);
 
-    double matchValue, threshold;
-    data->getThreshold(threshold);
+    double matchValue;
     matchValue = threshold;
     bool found = false;
     std::vector<ImageOf<PixelRgb> >::iterator it;
@@ -226,22 +228,12 @@ void ImageReceiver::onRead(ImageOf<PixelRgb>& img)
         of << oss.str() << endl;
         of.close();
     
-        }
+      }
     
     cvReleaseImage(&currImg); cvReleaseImage(&currImgH); cvReleaseImage(&currImgS); cvReleaseImage(&currImgV);
     cvReleaseHist(&currHist);
     
     data->imgMutex.post();
-}   
-    
-ThresholdReceiver::ThresholdReceiver(HistMatchData* d) : data(d) { }
-    
-
-void ThresholdReceiver::onRead(Bottle& threshold)
-{
-    double t = threshold.get(0).asDouble();
-    std::cout << "the threshold is now: " << t << std::endl;
-    data->setThreshold(t);
 }
 
 /** AAM Module open. This is inherited from the module class. 
@@ -304,13 +296,11 @@ bool AutoAssociativeMemoryModule::open(Searchable &config)
     data.loadDatabase();
 
     // create AAM ports
-    _portImageIn = new ImageReceiver(&data, &_portImageOut, &_portValueOut);
-    _portThresholdIn = new ThresholdReceiver(&data);
+    _portThresholdIn = new ThresholdReceiver(&data, &_portImageIn, &_portImageOut, &_portValueOut);
 
-    _portImageIn->useCallback();
     _portThresholdIn->useCallback();
 
-    _portImageIn->open(_namePortImageIn);
+    _portImageIn.open(_namePortImageIn);
     _portThresholdIn->open(_namePortThresholdIn);
     _portImageOut.open(_namePortImageOut);
     _portValueOut.open(_namePortValueOut);
@@ -326,7 +316,7 @@ bool AutoAssociativeMemoryModule::updateModule()
 bool AutoAssociativeMemoryModule::interruptModule()
 {
     // interrupt ports gracefully
-    _portImageIn->interrupt();
+    _portImageIn.interrupt();
     _portThresholdIn->interrupt();
     _portImageOut.interrupt();
     _portValueOut.interrupt();
@@ -339,7 +329,7 @@ bool AutoAssociativeMemoryModule::close()
     cout << "Closing Auto-Associative Memory...\n\n";
 
     // close AAM ports
-    _portImageIn->close();
+    _portImageIn.close();
     _portThresholdIn->close();
     _portImageOut.close();
     _portValueOut.close();
