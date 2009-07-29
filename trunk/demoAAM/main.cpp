@@ -109,7 +109,7 @@ public:
 		// parse parameters or assign default values (append to getName=="/aam")
 		portOutName = botConfig.check("portThresholdOut",
 		                              Value(getName("threshold:o")),
-		                              "Output threshold port (string)").asString();        int period = botConfig.check("period",
+		                              "Output threshold port (string)").asString();        int period = botConfig.check("period",
                                      Value(1000),
                                      "period (milliseconds)").asInt();
         double threshold = botConfig.check("threshold",
