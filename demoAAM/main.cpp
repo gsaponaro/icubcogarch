@@ -50,13 +50,6 @@ public:
 		b.clear();
 		b.addDouble(threshold);
 		port_out->write();
-		
-		Time::delay(0.5);
-		
-		b = port_out->prepare();
-		b.clear();
-		b.addDouble(0.0);
-		port_out->write();
 	}
 
 	virtual void threadRelease()

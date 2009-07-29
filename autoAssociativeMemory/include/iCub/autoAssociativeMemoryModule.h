@@ -149,30 +149,6 @@ public:
 
 };
 
-/** 
-    Image Receiver class. Important for non-blocking callback functionality of the module
-*/
-class ImageReceiver : public BufferedPort<ImageOf<PixelRgb> >
-{
-private:
-        
-    HistMatchData* data;
-
-    BufferedPort<ImageOf<PixelRgb> >* imgPort;
-    BufferedPort<Bottle>* matchPort;
-
-    /** Callback for image receiver. 
-        This function gets called when an image becomes available on the port */    
-    virtual void onRead(ImageOf<PixelRgb>&);
-
-public:
-    /** ImageReceiver constructor
-        @param d Histogram matching data object
-        @param iPort Output port of the image
-        @param mPort Output port of the matching value
-    */
-    ImageReceiver(HistMatchData* d, BufferedPort<ImageOf<PixelRgb> >* iPort, BufferedPort<Bottle>* mPort);
-};
 
 /** 
     Threshold Receiver class. Important for non-blocking callback functionality of the module
@@ -182,12 +158,16 @@ class ThresholdReceiver : public BufferedPort<Bottle>
 private:
     HistMatchData* data;
 
+    BufferedPort<ImageOf<PixelRgb> >* imgPortIn;
+    BufferedPort<ImageOf<PixelRgb> >* imgPort;
+    BufferedPort<Bottle>* matchPort;
+
     /** Callback for threshold receiver.
         Function is called when a new threshold value becomes available. */
     virtual void onRead(Bottle&);
 
 public:
-    ThresholdReceiver(HistMatchData* d);
+    ThresholdReceiver(HistMatchData* d, BufferedPort<ImageOf<PixelRgb> >* iPortIn, BufferedPort<ImageOf<PixelRgb> >* iPort, BufferedPort<Bottle>* mPort);
 
 };
 
@@ -209,7 +189,7 @@ private:
     HistMatchData data;
 
     // ports
-    ImageReceiver* _portImageIn;
+    BufferedPort<ImageOf<PixelRgb> > _portImageIn;
     ThresholdReceiver* _portThresholdIn;
     BufferedPort<ImageOf<PixelRgb> > _portImageOut;
     BufferedPort<Bottle> _portValueOut;

@@ -2,7 +2,7 @@
 <name>auto-associative memory demo</name>
 
 <dependencies>
-   <port>/icub/cam/left</port>
+   <port>/icub/cam/right</port>
 </dependencies>
 
 <module>
@@ -23,6 +23,7 @@
    <name>/home/alberto/iCub/projects/icubcogarch/autoAssociativeMemory/autoAssociativeMemory</name>
    <parameters></parameters>
    <node>icub1</node>
+   <!--<stdio>icub1</stdio>-->
    <tag>aam</tag>
 </module>
 
@@ -35,13 +36,13 @@
 
 
 <connection>
-  <output>/icub/cam/left</output>
+  <output>/icub/cam/right</output>
   <input>/input_image</input>
   <protocol>tcp</protocol>
 </connection>
  
 <connection>
-   <output>/icub/cam/left</output>
+   <output>/icub/cam/right</output>
    <input>/aam/image:i</input>
    <protocol>tcp</protocol>
 </connection>
